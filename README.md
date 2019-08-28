@@ -1,117 +1,110 @@
-# Jenkins LTS - Nginx - Docker
+# jenkins-nginx
 
-**What is Jenkins?**
+This project is based on the official Jenkins Docker image.[[1](https://github.com/jenkinsci/docker)]
 
-- Jenkins offers a simple way to set up a continuous integration or continuous delivery environment for almost any combination of languages and source code repositories using pipelines, as well as automating other routine development tasks. While Jenkins doesn’t eliminate the need to create scripts for individual steps, it does give you a faster and more robust way to integrate your entire chain of build, test, and deployment tools than you can easily build yourself.
-
-
-This work is based on the Official Jenkins Docker Image [[1](https://github.com/jenkinsci/docker)].
-
-Docker doesn't recommend running the Docker daemon inside a container (except for very few use cases like developing Docker itself), and the solutions to make this happen are generally hacky and/or unreliable.
+Docker does not recommend running the Docker daemon inside a container (except for very few use cases like developing Docker itself), and the workaround are generally unreliable.
 
 Fear not though, there is an easy workaround: mount the host machine's Docker socket in the container. This will allow your container to use the host machine's Docker daemon to run containers and build images.
 
-Your container still needs compatible Docker client binaries in it, but I have found this to be acceptable for all my use cases. [[2](https://getintodevops.com/blog/the-simple-way-to-run-docker-in-docker-for-ci)]
+Your container still needs compatible Docker client binaries in it, but I have found this to be acceptable for all my use cases.[[2](https://getintodevops.com/blog/the-simple-way-to-run-docker-in-docker-for-ci)]
 
-## Table of Contents
+## Prerequisites
 
-- [Setup and configuration](#setup) - customize for version of Docker being run
-- [HTTP or HTTPS?](#http-or-https) - which protocol to use for your instance
-- [SSL Certificates](#ssl-certs) - configure for using SSL certificates
-- [.env](#dot-env) - variable declaration for docker-compose to use
-- [Deploy](#deploy) - deploying your Jenkins site
-- [Running site](#site) - what to expect after you deploy
-- [Trouble Shooting](#debugging) - debugging common issues
-
-## <a name="setup"></a>Configuration
-
-### Create directories on host
+### Directories
 
 Directories are created on the host and volume mounted to the docker containers. This allows the user to persist data beyond the scope of the container itself. If volumes are not persisted to the host the user runs the risk of losing their data when the container is updated or removed.
 
-- **jenkins_home**: The Jenkins application and job files
-- **logs/nginx**: The Nginx log files (error.log, access.log)
-- **certs**: SSL certificate files
+- **jenkins/jenkins_home**: The Jenkins application and job files
+- **jenkins/logs/nginx**: The Nginx log files (error.log, access.log)
+- **jenkins/certs**: SSL certificate files
 
 From the top level of the cloned repository, create the directories that will be used for managing the data on the host.
 
-```
-mkdir -p jenkins_home/ logs/nginx/ certs/
+```bash
+mkdir --parents --verbose jenkins/{jenkins_home/,logs/nginx/,certs/}
 ```
 
 **NOTE**: for permissions reasons it is important for the user to create these directories prior to issuing the docker-compose command. If the directories do not already exist when the containers are started, the directories will be created at start time and will be owned by the root user of the container process. This can lead to access denied permission issues.
 
 ### Docker version
 
-The version of Docker being run inside the container should be the same as the host it is being deployed as to mitigate against unforseen issues.
+The version of Docker being run inside the container should be the same as the host it is being deployed as to mitigate against unforeseen issues.
 
-In the [Dockerfile](Dockerfile), set the value of `ARG docker_version=` to correspond to the same version of `docker-ce` that is running on the host. The default value is `17.12.0~ce-0~debian`.
+In the [jenkins/Dockerfile](jenkins/Dockerfile), set the value of `ARG docker_version=` to correspond to the same version of `docker-ce` that is running on the host. The default value is `17.12.0~ce-0~debian`.
 
-The version of `docker-ce` on the host can be found by issuing a `docker version` call.
+The version of `docker-ce` on the host can be found by issuing a `docker version` command.
 
-- Example:
+```text
+Client: Docker Engine - Community
+ Version:           19.03.1
+ API version:       1.40
+ Go version:        go1.12.5
+ Git commit:        74b1e89
+ Built:             Thu Jul 25 21:18:17 2019
+ OS/Arch:           darwin/amd64
+ Experimental:      false
 
-    ```console
-    $ docker version
-    Client:
-     Version:	17.12.0-ce
-     API version:	1.35
-     Go version:	go1.9.2
-     Git commit:	c97c6d6
-     Built:	Wed Dec 27 20:03:51 2017
-     OS/Arch:	darwin/amd64
-    
-    Server:
-     Engine:
-      Version:	17.12.0-ce
-      API version:	1.35 (minimum version 1.12)
-      Go version:	go1.9.2
-      Git commit:	c97c6d6
-      Built:	Wed Dec 27 20:12:29 2017
-      OS/Arch:	linux/amd64
-      Experimental:	true
-    ```
+Server: Docker Engine - Community
+ Engine:
+  Version:          19.03.1
+  API version:      1.40 (minimum version 1.12)
+  Go version:       go1.12.5
+  Git commit:       74b1e89
+  Built:            Thu Jul 25 21:17:52 2019
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v1.2.6
+  GitCommit:        894b81a4b802e4eb2a91d1ce216b8817763c29fb
+ runc:
+  Version:          1.0.0-rc8
+  GitCommit:        425e105d5a03fabd737a126ad93d62a9eeede87f
+ docker-init:
+  Version:          0.18.0
+  GitCommit:        fec3683
+```
+
 	In this example the version was found to be `17.12.0-ce`, so the value of `docker_version` in the [Dockerfile](Dockerfile) should be set to `17.12.0~ce-0~debian` prior to building the image.
 
-- Debian based versions of `docker-ce` available as of 2019-07-30:
+- Follow the [installation guide](https://docs.docker.com/install/linux/docker-ce/debian/#install-docker-engine---community) inside a clean `library/debian:10-slim` container.
 
-  ```console
-  # apt-cache madison docker-ce | tr -s ' ' | cut -d '|' -f 2
-   5:19.03.1~3-0~debian-stretch
-   5:19.03.0~3-0~debian-stretch
-   5:18.09.8~3-0~debian-stretch
-   5:18.09.7~3-0~debian-stretch
-   5:18.09.6~3-0~debian-stretch
-   5:18.09.5~3-0~debian-stretch
-   5:18.09.4~3-0~debian-stretch
-   5:18.09.3~3-0~debian-stretch
-   5:18.09.2~3-0~debian-stretch
-   5:18.09.1~3-0~debian-stretch
-   5:18.09.0~3-0~debian-stretch
-   18.06.3~ce~3-0~debian
-   18.06.2~ce~3-0~debian
-   18.06.1~ce~3-0~debian
-   18.06.0~ce~3-0~debian
-   18.03.1~ce-0~debian
-   18.03.0~ce-0~debian
-   17.12.1~ce-0~debian
-   17.12.0~ce-0~debian
-   17.09.1~ce-0~debian
-   17.09.0~ce-0~debian
-   17.06.2~ce-0~debian
-   17.06.1~ce-0~debian
-   17.06.0~ce-0~debian
-   17.03.3~ce-0~debian-stretch
-   17.03.2~ce-0~debian-stretch
-   17.03.1~ce-0~debian-stretch
-   17.03.0~ce-0~debian-stretch
-  ```
- 
+```bash
+docker run -it --rm library/debian:10-slim bash
+```
+
+- Debian based versions of `docker-ce` available as of 2019-08-28:
+
+```bash
+apt-cache madison docker-ce | tr -s ' ' | cut -d '|' -f 2 | sort --numeric-sort
+```
+
+```text
+5:18.09.0~3-0~debian-buster
+5:18.09.1~3-0~debian-buster
+5:18.09.2~3-0~debian-buster
+5:18.09.3~3-0~debian-buster
+5:18.09.4~3-0~debian-buster
+5:18.09.5~3-0~debian-buster
+5:18.09.6~3-0~debian-buster
+5:18.09.7~3-0~debian-buster
+5:18.09.8~3-0~debian-buster
+5:19.03.0~3-0~debian-buster
+5:19.03.1~3-0~debian-buster
+17.12.0~ce-0~debian
+17.12.1~ce-0~debian
+18.03.0~ce-0~debian
+18.03.1~ce-0~debian
+18.06.0~ce~3-0~debian
+18.06.1~ce~3-0~debian
+18.06.2~ce~3-0~debian
+18.06.3~ce~3-0~debian
+```
+
   Versions are subject to change as time goes on and keeping this reference up to date is outside of the scope of this document.
 
 Once the value of `ARG docker_version=` has been set, the jenkins container can be built using `docker-compose` [[3](https://github.com/docker/compose/releases)].
 
-```
+```bash
 docker-compose build
 ```
 
@@ -142,7 +135,7 @@ In order to facilitate this the `root` user must issue some commands at start up
 
 The new `docker-entrypoint.sh` script is prefixed to use Tini [[4](https://github.com/krallin/tini/issues/8)] as was the case for the `jenkins.sh` script from the original image.
 
-## <a name="http-or-https"></a>HTTP or HTTPS?
+## HTTP/HTTPS
 
 There are three files in the `nginx` directory, and which one you use depends on whether you want to serve your site using HTTP or HTTPS.
 
@@ -154,7 +147,7 @@ Files in the `nginx` directory:
 
 **NOTE**: `FQDN_OR_IP` is short for Fully Qualified Domain Name or IP Address, and should be DNS resolvable if using a hostname.
 
-Both of these are protocols for transferring the information of a particular website between the Web Server and Web Browser. But what’s difference between these two? Well, extra "s" is present in https and that makes it secure! 
+Both of these are protocols for transferring the information of a particular website between the Web Server and Web Browser. But what’s difference between these two? Well, extra "s" is present in https and that makes it secure!
 
 A very short and concise difference between http and https is that https is much more secure compared to http. https = http + cryptographic protocols.
 
@@ -171,18 +164,18 @@ Main differences between HTTP and HTTPS
 
 If you plan to run your Jenkins site over http on port 80, then do the following.
 
-1. Replace the contents of `nginx/default.conf` with the `nginx/default_http.conf.template` file 
+1. Replace the contents of `nginx/default.conf` with the `nginx/default_http.conf.template` file
 2. Update the `FQDN_OR_IP` in `nginx/default.conf` to be that of your domain
 
 ### HTTPS
 
 If you plan to run your WordPress site over https on port 443, then do the following.
 
-1. Replace the contents of `nginx/default.conf` with the `nginx/default_https.conf.template` file. 
+1. Replace the contents of `nginx/default.conf` with the `nginx/default_https.conf.template` file.
 2. Update the `FQDN_OR_IP` in `nginx/default.conf` to be that of your domain (occurs in many places)
 3. Review the options for SSL certificates below to complete your configuration
 
-## <a name="ssl-certs"></a>SSL Certificates
+## SSL Certificates
 
 **What are SSL Certificates?**
 
@@ -193,12 +186,13 @@ SSL Certificates bind together:
 - A domain name, server name or hostname.
 - An organizational identity (i.e. company name) and location.
 
-### Example using self signed certificates 
+### Example using self signed certificates
 
 Generate your certificates (example using `.pem` format)
 
-```
-cd certs
+```bash
+cd nginx/certs \
+&& \
 openssl req -x509 \
   -newkey rsa:4096 \
   -keyout self_signed_key.pem \
@@ -221,7 +215,7 @@ Uncomment the `NGINX_SSL_CERT` and `NGINX_SSL_KEY ` lines in the `docker-compose
 
 **NOTE**: the `NGINX_SSL_CERT ` and `NGINX_SSL_KEY ` values may need to be adjusted in the `.env` file to match your deployment
 
-## <a name="dot-env"></a>.env
+## Environment
 
 A `.env` file has been included to more easily set docker-compose variables without having to modify the `docker-compose.yml` file itself.
 
@@ -241,7 +235,7 @@ NGINX_SSL_CERT=./certs/self_signed_cert.pem
 NGINX_SSL_KEY=./certs/self_signed_key.pem
 ```
 
-## <a name="deploy"></a>Deploy
+## Deploy
 
 Use docker-compose from the top level of the repository to run the containers. Generally this is done using the `-d` flag to daemonize the processes.
 
@@ -263,7 +257,7 @@ It may take a few minutes for the Jenkins container to complete it's initial set
 - HTTP: [http://FQDN\_OR\_IP/jenkins]()
 - HTTPS: [https://FQDN\_OR\_IP/jenkins]()
 
-## <a name="site"></a>Running site
+## Site
 
 First run:
 
@@ -292,7 +286,7 @@ CONTAINER ID        IMAGE                      COMMAND                  CREATED 
 d68e3b96071e        nginx:latest               "nginx -g 'daemon of…"   11 minutes ago      Up 11 minutes       0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp                                             nginx
 ```
 
-## <a name="debugging"></a>Trouble Shooting
+## Debugging
 
 ### Nginx configuration
 
@@ -312,7 +306,6 @@ Since the `default.conf` file is mounted from the host it can be updated in real
   $ docker exec nginx /usr/sbin/nginx -s reload
   Reloading nginx: nginx.
   ```
-
 
 ## References
 

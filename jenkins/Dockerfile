@@ -1,7 +1,7 @@
 FROM jenkins/jenkins:lts
 MAINTAINER Michael J. Stealey <michael.j.stealey@gmail.com>
 
-ARG docker_version=17.12.0~ce-0~debian
+ARG docker_version=18.06.3~ce~3-0~debian
 
 USER root
 RUN apt-get update && apt-get -y install \
