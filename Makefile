@@ -3,8 +3,7 @@ all: clean jenkins
 
 .PHONY: build
 build:
-	mkdir --parents --verbose jenkins/jenkins_home \
-	&& mkdir --parents --verbose nginx/{certificates,logs} \
+	m$(MAKE) create-volumes \
 	&& docker-compose \
 		build
 
@@ -16,8 +15,7 @@ status:
 
 .PHONY: jenkins
 jenkins:
-	mkdir --parents --verbose jenkins/jenkins_home \
-	&& mkdir --parents --verbose nginx/{certificates,logs} \
+	$(MAKE) create-volumes \
 	&& docker-compose \
 		--file docker-compose.yaml \
 		up \
@@ -43,7 +41,12 @@ stop:
 .PHONY: purge-volumes
 purge-volumes:
 	rm --recursive --verbose jenkins/jenkins_home \
-	&& mkdir --parents --verbose jenkins/jenkins_home \
+	&& rm --recursive --verbose nginx/logs \
+	&& $(MAKE) create-volumes
+
+.PHONY: create-volumes
+create-volumes:
+	mkdir --parents --verbose jenkins/jenkins_home \
 	&& mkdir --parents --verbose nginx/{certificates,logs}
 
 .PHONY: clean

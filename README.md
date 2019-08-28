@@ -199,7 +199,7 @@ A very short and concise difference between http and https is that https is much
 
 Main differences between HTTP and HTTPS:
 
-- In HTTP, URL begins with [http://]() whereas an HTTPS URL starts with [https://]()
+- In HTTP, URL begins with `http://` whereas an HTTPS URL starts with `https://`.
 - HTTP uses port number `80` and HTTPS uses `443` for communication by default.
 - HTTP is considered to be unsecured and HTTPS is secure.
 - HTTP works at Application Layer and HTTPS works at Transport Layer
@@ -245,19 +245,19 @@ openssl req -x509 \
   -nodes -subj '/CN='$(hostname)
 ```
 
-Uncomment the `NGINX_SSL_CERT` and `NGINX_SSL_KEY ` lines in the `docker-compose.yml` file
+Uncomment the `NGINX_SSL_CERTIFICATE` and `NGINX_SSL_KEY` lines in the `docker-compose.yml` file
 
 ```yaml
 ...
     volumes:
       - ./nginx/logs/nginx:/var/log/nginx
-      - ${NGINX_DEFAULT_CONF:-./nginx/default.conf}:/etc/nginx/conf.d/default.conf
-      - ${NGINX_SSL_CERT:-./nginx/certificates/self_signed_certificate.pem}:/etc/nginx/ssl/server.crt
+      - ${NGINX_DEFAULT_CONFIGURATION:-./nginx/default.conf}:/etc/nginx/conf.d/default.conf
+      - ${NGINX_SSL_CERTIFICATE:-./nginx/certificates/self_signed_certificate.pem}:/etc/nginx/ssl/server.crt
       - ${NGINX_SSL_KEY:-./nginx/certificates/self_signed_key.pem}:/etc/nginx/ssl/server.key
 ...
 ```
 
-Note that the `NGINX_SSL_CERT ` and `NGINX_SSL_KEY ` values may need to be adjusted in the `.env` file to match your deployment
+Note that the `NGINX_SSL_CERTIFICATE` and `NGINX_SSL_KEY` values may need to be adjusted in the `.env` file to match your deployment
 
 ## Environment
 
@@ -274,8 +274,8 @@ GID_JENKINS=1000
 JENKINS_OPTS="--prefix=/jenkins"
 
 # nginx - nginx:latest
-NGINX_DEFAULT_CONF=./nginx/default.conf
-NGINX_SSL_CERT=./nginx/certificates/self_signed_certificate.pem
+NGINX_DEFAULT_CONFIGURATION=./nginx/default.conf
+NGINX_SSL_CERTIFICATE=./nginx/certificates/self_signed_certificate.pem
 NGINX_SSL_KEY=./nginx/certificates/self_signed_key.pem
 ```
 
@@ -301,8 +301,8 @@ CONTAINER ID        IMAGE                      COMMAND                  CREATED 
 
 It may take a few minutes for the Jenkins container to complete it's initial setup, but once completed you should find your running site at:
 
-- HTTP: [http://FQDN\_OR\_IP/jenkins]()
-- HTTPS: [https://FQDN\_OR\_IP/jenkins]()
+- HTTP: `http://FQDN_OR_IP/jenkins`
+- HTTPS: `https://FQDN_OR_IP/jenkins`
 
 ## Site
 
@@ -341,24 +341,24 @@ Since the `default.conf` file is mounted from the host it can be updated in real
 
 - Example validation:
 
-  ```console
-  $ docker exec nginx /usr/sbin/nginx -t
-  nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
-  nginx: configuration file /etc/nginx/nginx.conf test is successful
-  ```
+```console
+$ docker exec nginx /usr/sbin/nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
 
 - Example reload:
 
-  ```console
-  $ docker exec nginx /usr/sbin/nginx -s reload
-  Reloading nginx: nginx.
-  ```
+```console
+$ docker exec nginx /usr/sbin/nginx -s reload
+Reloading nginx: nginx.
+```
 
 ## References
 
 [1] Official Jenkins Docker Image: [https://github.com/jenkinsci/docker](https://github.com/jenkinsci/docker)
 
-[2] Get into DevOps (blog): [https://getintodevops.com/blog/the-simple-way-to-run-docker-in-docker-for-ci](https://getintodevops.com/blog/the-simple-way-to-run-docker-in-docker-for-ci)
+[2] Get into DevOps Blog: [https://getintodevops.com/blog/the-simple-way-to-run-docker-in-docker-for-ci](https://getintodevops.com/blog/the-simple-way-to-run-docker-in-docker-for-ci)
 
 [3] Docker Compose Github Releases: [https://github.com/docker/compose/releases](https://github.com/docker/compose/releases)
 
