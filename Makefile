@@ -3,7 +3,7 @@ all: clean jenkins
 
 .PHONY: build
 build:
-	m$(MAKE) create-volumes \
+	$(MAKE) create-volumes \
 	&& docker-compose \
 		build
 
