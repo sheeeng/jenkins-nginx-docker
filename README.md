@@ -248,14 +248,12 @@ openssl req -x509 \
 Uncomment the `NGINX_SSL_CERTIFICATE` and `NGINX_SSL_KEY` lines in the `docker-compose.yml` file
 
 ```yaml
-...
     volumes:
       - ./nginx/logs/nginx:/var/log/nginx
       - ${NGINX_DEFAULT_CONFIGURATION:-./nginx/default.conf}:/etc/nginx/conf.d/default.conf
       - ${NGINX_SSL_CERTIFICATE:-./nginx/certificates/self_signed_certificate.pem}:/etc/nginx/ssl/server.crt
       - ${NGINX_SSL_KEY:-./nginx/certificates/self_signed_key.pem}:/etc/nginx/ssl/server.key
-...
-```
+x```
 
 Note that the `NGINX_SSL_CERTIFICATE` and `NGINX_SSL_KEY` values may need to be adjusted in the `.env` file to match your deployment
 
@@ -284,7 +282,7 @@ NGINX_SSL_KEY=./nginx/certificates/self_signed_key.pem
 Use docker-compose from the top level of the repository to run the containers. Generally this is done using the `--detach` flag to allow the container to run continually in the background.
 
 ```bash
-docker-compose up -d
+docker-compose up --detach
 ```
 
 A successful run will yield two new containers, `nginx` and `jenkins`.
