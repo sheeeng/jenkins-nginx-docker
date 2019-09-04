@@ -1,5 +1,5 @@
 # FROM jenkins/jenkins:lts
-FROM jenkins/jenkins:2.176.2
+FROM jenkins/jenkins:2.176.3
 
 LABEL maintainer Leonard Lee <sheeeng@gmail.com>
 
